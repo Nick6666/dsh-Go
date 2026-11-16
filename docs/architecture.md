@@ -250,10 +250,11 @@ HomeShell = [ChatScreen] + [SessionsDrawer 左] + [QuickPanel 右] + [SystemEntr
 | `IOSPhoneCoreDevice.swift`、`IOSPhoneSelfRunner.swift`、`PhoneRunner/` | CoreDevice 负责可用的应用控制和观察；本机缺少输入服务时，已签名的独立 PhoneRunner 承担 XCTest 元素观察与点按。能力以设备实际服务和用户设置为准 |
 | `IOSPhoneTaskConsent.swift`、`ContinuedRun.swift` | 每个手机任务首次在前台授权，最长 30 分钟；后续普通动作可在目标 App 前台继续。离开 DSH Go 时才请求 iOS 26 持续任务，系统可拒绝、过期或中止；画中画不是手机操控准入条件 |
 | `CompanionWidget/`、`IOSCompanionWidget.swift` | WidgetKit 小/中尺寸伙伴卡；主 App 写有限展示快照到专用 Keychain，扩展只读快照，不分享 Host 凭据 |
+| `StreamingPcm.swift`、`VoiceChannel.swift` | `dsh/voice` 的 `streamingPcm` 把通话引擎与录音会话的 16 kHz PCM16 切成 640 字节帧发到 `dsh/voice/events`；实时字幕与安卓走同一套契约 |
 | `MediaVideoChannel.swift`、`NativeMediaChannel.swift` | `dsh/media_video` 用 `AVPlayerItemVideoOutput` + `FlutterTexture` 播放已落地的本地视频，卡片的封面由 `AVAssetImageGenerator` 生成；与 Android 的 `MediaVideoPlugin.kt` 同一套方法契约 |
 | `PetOverlay/IOSPetOverlay.swift`、`VoiceChannel.swift`、`IOSAudioSessionCoordinator.swift` | 像素宠物 PiP 默认关闭且可选；`dsh/voice` 负责系统听写/录音，`dsh/speech` 负责通话与朗读 PCM，音频会话由原生协调器管理 |
 
-iOS 仍有明确缺口：通话实时 PCM 字幕、网页伙伴画中画渲染和 APK 式自更新没有等价原生实现；相关入口须降级或隐藏。每次共享 Flutter 新增平台通道，都要核对 iOS 注册及方法返回类型；当前清单和轻量 CI 检查在 [`tooling/ios/CHANNEL_COVERAGE.md`](../tooling/ios/CHANNEL_COVERAGE.md)。真机上的后台持续执行、XCTest 输入与可选 guest 软件包不能由模拟器编译推断。
+iOS 仍有明确缺口：网页伙伴画中画渲染和 APK 式自更新没有等价原生实现；相关入口须降级或隐藏。每次共享 Flutter 新增平台通道，都要核对 iOS 注册及方法返回类型；当前清单和轻量 CI 检查在 [`tooling/ios/CHANNEL_COVERAGE.md`](../tooling/ios/CHANNEL_COVERAGE.md)。真机上的后台持续执行、XCTest 输入与可选 guest 软件包不能由模拟器编译推断。
 
 ## 3B. 鸿蒙宿主层（ArkTS）
 

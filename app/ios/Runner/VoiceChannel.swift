@@ -44,11 +44,14 @@ final class VoiceChannel: NSObject, FlutterStreamHandler {
 
   func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
     sink = events
+    StreamingPcmTap.shared.emit = { [weak self] values in self?.sink?(values) }
     return nil
   }
 
   func onCancel(withArguments arguments: Any?) -> FlutterError? {
     sink = nil
+    StreamingPcmTap.shared.emit = nil
+    StreamingPcmTap.shared.stop(session: StreamingPcmTap.shared.activeSession)
     endSession()
     return nil
   }
@@ -71,6 +74,17 @@ final class VoiceChannel: NSObject, FlutterStreamHandler {
     case "startRecorder":
       let seconds = min(max(args["maxSeconds"] as? Int ?? 60, 1), 600)
       begin(args, result: result) { RecorderSession(maxSeconds: seconds, emit: $0) }
+    case "streamingPcm":
+      guard let id = args["pcmSession"] as? Int else {
+        return result(Self.failure("arguments", code: 5))
+      }
+      // A start carries `source`; a stop carries only the id it is closing.
+      if let source = args["source"] as? String {
+        StreamingPcmTap.shared.start(session: id, source: source)
+      } else {
+        StreamingPcmTap.shared.stop(session: id)
+      }
+      result(nil)
     case "stop":
       guard let session else { return result(nil) }
       session.finish(result)
@@ -317,6 +331,8 @@ private final class RecorderSession: VoiceSession {
   private func add(_ chunk: Data, level: Double) {
     guard !over else { return }
     emit(["type": "level", "value": level])
+    // Dictation's live captions read the same 16 kHz stream the recording keeps.
+    StreamingPcmTap.shared.feed(chunk, source: "dictation")
     guard pcm.count < maxBytes else { return }
     pcm.append(chunk.prefix(maxBytes - pcm.count))
     if pcm.count >= maxBytes { emit(["type": "limit"]) }
@@ -534,7 +550,10 @@ final class IOSSpeechChannel: NSObject {
     switch call.method {
     case "callStart": reply(startCall(args))
     case "callStop": stopCall(); reply(nil)
-    case "callMute": muted = args["on"] as? Bool == true; reply(nil)
+    case "callMute":
+      muted = args["on"] as? Bool == true
+      StreamingPcmTap.shared.reset(muted ? "muted" : "resumed")
+      reply(nil)
     case "callBargeIn": bargeIn = args["on"] as? Bool != false; reply(nil)
     case "callPlaying": externalPlaying = args["on"] as? Bool == true; reply(nil)
     case "callPause": setPause(args["pause"] as? String); reply(nil)
@@ -617,6 +636,7 @@ final class IOSSpeechChannel: NSObject {
     callAudio.release()
     if wasActive { UIApplication.shared.isIdleTimerDisabled = oldIdleTimer }
     speaking = false; utterance = Data(); silenceMilliseconds = 0
+    if wasActive { StreamingPcmTap.shared.reset("stopped") }
     if wasActive, let error { event(["type": "callError", "reason": error]) }
   }
 
@@ -626,6 +646,7 @@ final class IOSSpeechChannel: NSObject {
 
   private func heard(_ pcm: Data, level: Double) {
     guard callActive, !muted else { return }
+    StreamingPcmTap.shared.feed(pcm, source: "call")
     event(["type": "micLevel", "value": level])
     let milliseconds = pcm.count * 1_000 / (16_000 * 2)
     let voiced = level > (playback != nil || externalPlaying ? 0.34 : 0.13)

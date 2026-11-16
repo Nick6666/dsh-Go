@@ -19,6 +19,6 @@ Flutter 的 `MethodChannel` 能编译通过，即使 iOS 没有注册同名通�
 
 `dsh/media_video` 已补上 iOS 实现（`app/ios/Runner/MediaVideoChannel.swift`）：`AVPlayerItemVideoOutput` 交给 `FlutterTexture`，`poster` 用 `AVAssetImageGenerator` 出 512px JPEG，`open/play/pause/seek/state/close` 与 Android 的 `MediaVideoPlugin.kt` 同一套错误码（`invalid`/`closed`/`background`/`unsupported`/`timeout`）。契约测试在 `app/ios/RunnerTests/MediaVideoChannelTests.swift`，用 AVAssetWriter 现生成短片，不依赖 Host 或设备相机。
 
-同名通道的**方法**也需核对：`dsh/media` 的 `saveVideoFile` 已补成 iOS 相册写入（编译和静态契约已验证，实际相册写入尚未做）；`dsh/voice` 的 `streamingPcm` 仍缺少 iOS 原生实时 PCM 帧（调用方捕获失败后回退到原来的识别方式）；`dsh/pet_overlay` 的 `configureCompanion` 和 `reloadPack` 在 iOS 宠物画中画中尚无对应处理，因此 iOS 设置不再提供网页伙伴悬浮渲染选择，控制器也不会启动该路线。App 内伙伴页面不受此限制。`dsh/notify/actions` 在 iOS 注册为空事件流，不属于缺失通道。
+同名通道的**方法**也需核对：`dsh/media` 的 `saveVideoFile` 已补成 iOS 相册写入（编译和静态契约已验证，实际相册写入尚未做）；`dsh/voice` 的 `streamingPcm` 已补上 iOS 实现（`app/ios/Runner/StreamingPcm.swift`）：通话引擎与录音会话各喂一路 16 kHz PCM16，`StreamingPcmTap` 切成 640 字节帧（20 ms）发到 `dsh/voice/events`，静音/恢复/停止发 `pcmReset`，帧只保留一个未满帧的尾巴；`dsh/pet_overlay` 的 `configureCompanion` 和 `reloadPack` 在 iOS 宠物画中画中尚无对应处理，因此 iOS 设置不再提供网页伙伴悬浮渲染选择，控制器也不会启动该路线。App 内伙伴页面不受此限制。`dsh/notify/actions` 在 iOS 注册为空事件流，不属于缺失通道。
 
 这个清单只证明通道注册与静态调用关系，不证明真实设备上的麦克风、播放、后台或 WebKit 行为。新增共享 UI 功能若调用原生通道，应核对 iOS 注册、每个方法的返回类型和真机路径。
