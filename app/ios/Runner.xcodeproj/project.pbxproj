@@ -13,6 +13,7 @@
 		D55000000000000000000501 /* IOSCompanionVoice.swift in Sources */ = {isa = PBXBuildFile; fileRef = D55000000000000000000500 /* IOSCompanionVoice.swift */; };
 		D55000000000000000000503 /* IOSCompanionVoiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D55000000000000000000502 /* IOSCompanionVoiceTests.swift */; };
 		D55000000000000000000411 /* IOSPhoneResultEnvelopeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D55000000000000000000410 /* IOSPhoneResultEnvelopeTests.swift */; };
+		D55000000000000000000422 /* MediaVideoChannelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D55000000000000000000421 /* MediaVideoChannelTests.swift */; };
 		D5500000000000000000040F /* IOSPhoneTaskConsentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5500000000000000000040E /* IOSPhoneTaskConsentTests.swift */; };
 		D55000000000000000000335 /* IOSPhoneResultEnvelope.swift in Sources */ = {isa = PBXBuildFile; fileRef = D55000000000000000000334 /* IOSPhoneResultEnvelope.swift */; };
 		D55000000000000000000332 /* PhoneRunnerObservation.swift in Sources */ = {isa = PBXBuildFile; fileRef = D55000000000000000000330 /* PhoneRunnerObservation.swift */; };
@@ -74,6 +75,7 @@
 		D5480000000000000000C02B /* NativeMediaChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5480000000000000000C02A /* NativeMediaChannel.swift */; };
 		D5480000000000000000C02D /* IslandsChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5480000000000000000C02C /* IslandsChannel.swift */; };
 		D5480000000000000000C011 /* EngineChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5480000000000000000C010 /* EngineChannel.swift */; };
+		D5480000000000000000C0F2 /* MediaVideoChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5480000000000000000C0F1 /* MediaVideoChannel.swift */; };
 		D5480000000000000000C013 /* EngineRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5480000000000000000C012 /* EngineRuntime.swift */; };
 		D5480000000000000000C015 /* EngineSkills.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5480000000000000000C014 /* EngineSkills.swift */; };
 		D5480000000000000000A005 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = D5480000000000000000A006 /* InfoPlist.strings */; };
@@ -178,6 +180,7 @@
 		D55000000000000000000500 /* IOSCompanionVoice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOSCompanionVoice.swift; sourceTree = "<group>"; };
 		D55000000000000000000502 /* IOSCompanionVoiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOSCompanionVoiceTests.swift; sourceTree = "<group>"; };
 		D55000000000000000000410 /* IOSPhoneResultEnvelopeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOSPhoneResultEnvelopeTests.swift; sourceTree = "<group>"; };
+		D55000000000000000000421 /* MediaVideoChannelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaVideoChannelTests.swift; sourceTree = "<group>"; };
 		D5500000000000000000040E /* IOSPhoneTaskConsentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOSPhoneTaskConsentTests.swift; sourceTree = "<group>"; };
 		D55000000000000000000334 /* IOSPhoneResultEnvelope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOSPhoneResultEnvelope.swift; sourceTree = "<group>"; };
 		D5500000000000000000040C /* IOSPhoneRPCDispatchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOSPhoneRPCDispatchTests.swift; sourceTree = "<group>"; };
@@ -238,6 +241,7 @@
 		D5480000000000000000C02A /* NativeMediaChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeMediaChannel.swift; sourceTree = "<group>"; };
 		D5480000000000000000C02C /* IslandsChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandsChannel.swift; sourceTree = "<group>"; };
 		D5480000000000000000C010 /* EngineChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineChannel.swift; sourceTree = "<group>"; };
+		D5480000000000000000C0F1 /* MediaVideoChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaVideoChannel.swift; sourceTree = "<group>"; };
 		D5480000000000000000C012 /* EngineRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineRuntime.swift; sourceTree = "<group>"; };
 		D5480000000000000000C014 /* EngineSkills.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineSkills.swift; sourceTree = "<group>"; };
 		D5480000000000000000A007 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
@@ -362,6 +366,7 @@
 				D5480000000000000000F106 /* IOSPhoneSelfRunnerTests.swift */,
 				D55000000000000000000402 /* IOSPhoneCoreDeviceTests.swift */,
 				D55000000000000000000410 /* IOSPhoneResultEnvelopeTests.swift */,
+				D55000000000000000000421 /* MediaVideoChannelTests.swift */,
 				D5500000000000000000040E /* IOSPhoneTaskConsentTests.swift */,
 				D5500000000000000000040C /* IOSPhoneRPCDispatchTests.swift */,
 				D5500000000000000000040A /* IOSPhoneXCTestObservationTests.swift */,
@@ -469,6 +474,7 @@
 				D5480000000000000000C02A /* NativeMediaChannel.swift */,
 				D5480000000000000000C02C /* IslandsChannel.swift */,
 				D5480000000000000000C010 /* EngineChannel.swift */,
+				D5480000000000000000C0F1 /* MediaVideoChannel.swift */,
 				D5480000000000000000C012 /* EngineRuntime.swift */,
 				D5480000000000000000C014 /* EngineSkills.swift */,
 				D5480000000000000000B007 /* ShareChannel.swift */,
@@ -768,6 +774,7 @@
 				D5480000000000000000F107 /* IOSPhoneSelfRunnerTests.swift in Sources */,
 				D55000000000000000000403 /* IOSPhoneCoreDeviceTests.swift in Sources */,
 				D55000000000000000000411 /* IOSPhoneResultEnvelopeTests.swift in Sources */,
+				D55000000000000000000422 /* MediaVideoChannelTests.swift in Sources */,
 				D5500000000000000000040F /* IOSPhoneTaskConsentTests.swift in Sources */,
 				D5500000000000000000040D /* IOSPhoneRPCDispatchTests.swift in Sources */,
 				D5500000000000000000040B /* IOSPhoneXCTestObservationTests.swift in Sources */,
@@ -835,6 +842,7 @@
 				D5480000000000000000C02B /* NativeMediaChannel.swift in Sources */,
 				D5480000000000000000C02D /* IslandsChannel.swift in Sources */,
 				D5480000000000000000C011 /* EngineChannel.swift in Sources */,
+				D5480000000000000000C0F2 /* MediaVideoChannel.swift in Sources */,
 				D5480000000000000000C013 /* EngineRuntime.swift in Sources */,
 				D5480000000000000000C015 /* EngineSkills.swift in Sources */,
 				D5480000000000000000B005 /* ShareInbox.swift in Sources */,

@@ -38,6 +38,7 @@ final class DshPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycleDelegate {
       AppChannel(messenger: messenger),
       FilesChannel(messenger: messenger),
       MediaChannel(messenger: messenger),
+      MediaVideoChannel(messenger: messenger, textures: registrar.textures()),
       NotifyChannel(messenger: messenger),
       VoiceChannel(messenger: messenger),
       IOSSpeechChannel(messenger: messenger),
