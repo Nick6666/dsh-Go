@@ -85,6 +85,10 @@ if [[ $remote_only -eq 1 && -f "$ENGINE/.ready" ]]; then
   die "app/ios/Engine is prepared; move it away for a deliberately remote-only build"
 fi
 
+# zip runs from the staging directory, so the output has to be absolute first.
+mkdir -p "$out"
+out=$(cd "$out" && pwd -P)
+
 apk_like="dsh-go-$name-ios-arm64$([[ $engine_ready -eq 1 ]] || echo '-remote').ipa"
 if [[ $mode != release ]]; then apk_like="dsh-go-$name-ios-$mode.ipa"; fi
 ipa="$out/$apk_like"
@@ -141,7 +145,6 @@ if [[ -f "$BUILT/Frameworks/NodeMobile.framework/NodeMobile" ]] &&
   die "the embedded NodeMobile is not arm64"
 fi
 
-mkdir -p "$out"
 stage=$(mktemp -d "$out/.stage.XXXXXX")
 trap 'rm -rf "$stage"' EXIT
 mkdir -p "$stage/Payload"

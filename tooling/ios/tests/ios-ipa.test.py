@@ -4,6 +4,7 @@ The script is run with --dry-run, so nothing is built and no Xcode is needed: th
 checks are the argument handling, the stamped version and the command it prints.
 """
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -20,7 +21,8 @@ def run(*args):
 
 class BuildIpaDryRun(unittest.TestCase):
     def test_prints_an_unsigned_device_build_with_the_stamped_version(self):
-        done = run('--dry-run', '--build-name', '9.9.9', '--build-number', '12345678')
+        with tempfile.TemporaryDirectory() as out:
+            done = run('--dry-run', '--build-name', '9.9.9', '--build-number', '12345678', '--output', out)
         self.assertEqual(done.returncode, 0, done.stderr)
         self.assertIn('flutter build ios --release --no-codesign', done.stdout)
         self.assertIn('--build-name 9.9.9', done.stdout)
@@ -35,7 +37,8 @@ class BuildIpaDryRun(unittest.TestCase):
                 version = line.split(':', 1)[1].strip().split('+')[0]
                 break
         self.assertIsNotNone(version, 'app/pubspec.yaml has no version')
-        done = run('--dry-run', '--build-number', '12345678')
+        with tempfile.TemporaryDirectory() as out:
+            done = run('--dry-run', '--build-number', '12345678', '--output', out)
         self.assertEqual(done.returncode, 0, done.stderr)
         self.assertIn('--build-name ' + version, done.stdout)
 

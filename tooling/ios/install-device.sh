@@ -59,7 +59,10 @@ import json, sys
 data = json.load(open(sys.argv[1]))
 for entry in data.get("result", {}).get("devices", []):
     hardware = entry.get("hardwareProperties", {})
+    # A paired watch is physical too but cannot take this build.
     if hardware.get("reality") != "physical":
+        continue
+    if not hardware.get("productType", "").startswith(("iPhone", "iPad")):
         continue
     connection = entry.get("connectionProperties", {})
     print("%s\t%s\t%s\t%s" % (
@@ -81,10 +84,11 @@ fi
 command -v flutter >/dev/null || die "flutter is not on PATH"
 
 if [[ -z $device ]]; then
-  mapfile -t found < <(devices)
-  ((${#found[@]})) || die "no physical device connected"
-  ((${#found[@]} == 1)) || die "several devices connected; pick one with --device"
-  device=$(printf '%s\n' "${found[0]}" | cut -f1)
+  found=$(devices)
+  [[ -n $found ]] || die "no physical device connected"
+  count=$(printf '%s\n' "$found" | wc -l | tr -d ' ')
+  ((count == 1)) || die "several devices connected; pick one with --device"
+  device=$(printf '%s\n' "$found" | cut -f1)
 fi
 printf 'install-device: %s\n' "$device" >&2
 
