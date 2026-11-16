@@ -251,6 +251,7 @@ HomeShell = [ChatScreen] + [SessionsDrawer 左] + [QuickPanel 右] + [SystemEntr
 | `IOSPhoneTaskConsent.swift`、`ContinuedRun.swift` | 每个手机任务首次在前台授权，最长 30 分钟；后续普通动作可在目标 App 前台继续。离开 DSH Go 时才请求 iOS 26 持续任务，系统可拒绝、过期或中止；画中画不是手机操控准入条件 |
 | `CompanionWidget/`、`IOSCompanionWidget.swift` | WidgetKit 小/中尺寸伙伴卡；主 App 写有限展示快照到专用 Keychain，扩展只读快照，不分享 Host 凭据 |
 | `StreamingPcm.swift`、`VoiceChannel.swift` | `dsh/voice` 的 `streamingPcm` 把通话引擎与录音会话的 16 kHz PCM16 切成 640 字节帧发到 `dsh/voice/events`；实时字幕与安卓走同一套契约 |
+| `AppDelegate.swift` 的后台任务、`RelayHostLink` 的恢复路径 | 进后台申请约 30 秒后台任务保住套接字；返回前台时探针给 3 秒预算，失败即就地重连或换新客户端，主机目录在 90 秒窗口内复用 |
 | `MediaVideoChannel.swift`、`NativeMediaChannel.swift` | `dsh/media_video` 用 `AVPlayerItemVideoOutput` + `FlutterTexture` 播放已落地的本地视频，卡片的封面由 `AVAssetImageGenerator` 生成；与 Android 的 `MediaVideoPlugin.kt` 同一套方法契约 |
 | `PetOverlay/IOSPetOverlay.swift`、`VoiceChannel.swift`、`IOSAudioSessionCoordinator.swift` | 像素宠物 PiP 默认关闭且可选；`dsh/voice` 负责系统听写/录音，`dsh/speech` 负责通话与朗读 PCM，音频会话由原生协调器管理 |
 

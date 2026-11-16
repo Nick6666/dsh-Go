@@ -16,6 +16,21 @@ Apple 开发者账号，也不需要在一台真机上验证安装。
 
 iOS 不走 `update.json`、不做 App 内更新，也不产生增量补丁：改一次都要重签，增量没有意义。
 
+## 这一版包含什么
+
+`ios-v1.1.0` 的 IPA 由 `feat/ios-ipa` 上的这些提交构建，功能与 Android 版对齐到下面几项：
+
+| 能力 | 实现 | 测试 |
+|---|---|---|
+| App 内视频预览 | `Runner/MediaVideoChannel.swift`：`AVPlayerItemVideoOutput` + `FlutterTexture`，海报用 `AVAssetImageGenerator` | `RunnerTests/MediaVideoChannelTests.swift`（6 条） |
+| 通话 / 听写的实时 PCM 帧 | `Runner/StreamingPcm.swift`：16 kHz PCM16 切 640 字节帧发到 `dsh/voice/events`，带 muted/resumed/stopped 的 `pcmReset` | `RunnerTests/StreamingPcmTests.swift`（5 条） |
+| 从后台回来不再从头协商 | `AppDelegate` 申请约 30 秒后台任务保链路；`RelayHostLink` 返回前台时探针失败即恢复，主机目录缓存 90 秒 | `test/remote/relay_resume_test.dart`（5 条） |
+
+这些测试都在 iOS 27.2 模拟器上跑过（`xcodebuild test-without-building`），真机上只验证了安装、启动与配对后的连接；
+麦克风、相册写入、后台执行这些仍以真机复验为准（见 `app/ios/README.md`）。
+
+本机（免费 Apple ID）装机另外去掉了 App Group，代价见下一节；公版签名不受影响。
+
 ## 构建
 
 依赖：macOS + Xcode（CI 用 26.6，本机 27.2 也能编）、Flutter 3.47.7、rustup（
