@@ -248,6 +248,13 @@ class RelayHostLink implements HostLink, NetworkInspectableHostLink {
   Future<RemoteNetworkStatus?>? _networkInspection;
   int _networkEpoch = 0;
 
+  /// The host as the Server last listed it, and when. A resume only needs the
+  /// id and key it had a moment ago, so a reconnect inside this window skips
+  /// the directory round trip; anything older is looked up again.
+  RelayHost? _resolvedHost;
+  DateTime? _resolvedAt;
+  static const _hostCacheAge = Duration(seconds: 90);
+
   /// The first client goes out through [open]; later ones through [clients].
   bool _published = false;
   int _attempt = 0;
@@ -311,7 +318,7 @@ class RelayHostLink implements HostLink, NetworkInspectableHostLink {
       throw HostLinkError(HostLinkErrorKind.unavailable, appL10n.remoteUnavailable);
     }
     _emit(_status.withStep(HostLinkStep.connect));
-    final host = await resolveHost();
+    final host = await _resolveHost();
     if (_closed) throw StateError('link closed');
     if (host == null) {
       throw HostLinkError(HostLinkErrorKind.notLoggedIn, appL10n.remoteErrHostNotFound);
@@ -349,6 +356,18 @@ class RelayHostLink implements HostLink, NetworkInspectableHostLink {
     if (_published) _clients.add(client);
     _published = true;
     return client;
+  }
+
+  Future<RelayHost?> _resolveHost() async {
+    final cached = _resolvedHost;
+    final at = _resolvedAt;
+    if (cached != null && at != null && DateTime.now().difference(at) < _hostCacheAge) return cached;
+    final host = await resolveHost();
+    if (host != null) {
+      _resolvedHost = host;
+      _resolvedAt = DateTime.now();
+    }
+    return host;
   }
 
   /// States from the relay client. Before [open] resolves they only move the
@@ -423,9 +442,11 @@ class RelayHostLink implements HostLink, NetworkInspectableHostLink {
   void kick() {
     if (_closed) return;
     if (_status.phase == HostLinkPhase.connected) {
-      // The tunnel's health check would notice a dead network only later.
+      // The tunnel's health check would notice a dead network only later; a
+      // resumed app has usually lost it altogether, so start the reconnect
+      // as soon as the probe says so.
       final client = _client;
-      if (client != null) unawaited(backend.probe(client).then((_) {}, onError: (_) {}));
+      if (client != null) unawaited(_probeAndRecover(client));
     } else if (_status.phase == HostLinkPhase.reconnecting) {
       // Cut the wait short: our retry loop's, the relay client's own, or
       // connect afresh when that client is gone.
@@ -442,11 +463,39 @@ class RelayHostLink implements HostLink, NetworkInspectableHostLink {
     }
   }
 
+  /// iOS suspends the app and the tunnel dies with it; the carrier's own timer
+  /// then takes seconds to a minute to notice. Probing on resume turns that
+  /// into one quick round trip, and a failed probe reconnects at once.
+  Future<void> _probeAndRecover(DshClient client) async {
+    bool healthy;
+    try {
+      healthy = await backend.probe(client).timeout(const Duration(seconds: 3), onTimeout: () => false);
+    } catch (_) {
+      healthy = false;
+    }
+    if (_closed || !identical(client, _client)) return;
+    if (healthy) return;
+    // A route change inside the probe already reconnected; a dead tunnel has
+    // not, and would otherwise wait for its own retry timer.
+    final restarted = backend.reconnect(client);
+    if (_status.phase == HostLinkPhase.connected) {
+      _emit(const HostLinkStatus(HostLinkPhase.reconnecting, attempt: 1));
+    }
+    if (restarted) return;
+    // No live carrier to restart: drop the dead client so `open` connects
+    // again instead of handing back the same one.
+    _client = null;
+    unawaited(open().then((_) {}, onError: (_) {}));
+  }
+
   /// "重新连接". A client that stopped on a terminal failure (replaced by
   /// another device, trust fixed, …) is restarted in place; without one, a
   /// fresh connect publishes a new client through [clients].
   @override
   void retry() {
+    // An explicit retry asks for the host as it is now.
+    _resolvedHost = null;
+    _resolvedAt = null;
     if (_status.phase == HostLinkPhase.reconnecting) {
       kick();
       return;

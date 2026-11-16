@@ -7,6 +7,13 @@ import UserNotifications
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   private var companionVoice: IOSCompanionVoice?
 
+  /// iOS suspends the process behind the app, and a paired Host then has to be
+  /// reached again from scratch. A background task keeps the process, and its
+  /// sockets, alive across a quick switch away -- the system allows about 30
+  /// seconds -- so returning usually finds the tunnel still up. Ending it in
+  /// the expiration handler matters: overrunning it gets the app killed.
+  private var linkGrace: UIBackgroundTaskIdentifier = .invalid
+
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
@@ -14,6 +21,7 @@ import UserNotifications
     // Before launch finishes, or the tap that launched the app is lost.
     UNUserNotificationCenter.current().delegate = NotifyTaps.shared
     forgetPreviousInstall()
+    observeLinkGrace()
     #if DSH_PHONE_SELF_RUNNER_DIAGNOSTICS
     let preflight = ProcessInfo.processInfo.arguments.contains("--dsh-phone-preflight")
       || ProcessInfo.processInfo.environment["DSH_PHONE_PREFLIGHT"] == "1"
@@ -43,6 +51,31 @@ import UserNotifications
     }
     #endif
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  /// Notifications rather than the app delegate's own callbacks: the app runs
+  /// on scenes, and these fire whichever scene is in front.
+  private func observeLinkGrace() {
+    let center = NotificationCenter.default
+    center.addObserver(
+      forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main
+    ) { [weak self] _ in self?.beginLinkGrace() }
+    center.addObserver(
+      forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main
+    ) { [weak self] _ in self?.endLinkGrace() }
+  }
+
+  private func beginLinkGrace() {
+    guard linkGrace == .invalid else { return }
+    linkGrace = UIApplication.shared.beginBackgroundTask(withName: "dsh.link-grace") { [weak self] in
+      self?.endLinkGrace()
+    }
+  }
+
+  private func endLinkGrace() {
+    guard linkGrace != .invalid else { return }
+    UIApplication.shared.endBackgroundTask(linkGrace)
+    linkGrace = .invalid
   }
 
   /// The Keychain outlives an uninstall and UserDefaults doesn't. On a fresh install
