@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  A mobile client for DeepSeek Harness. Android is released; iOS is in development and device testing, and currently needs a Mac build signed with your own team (<a href="app/ios/README.md">iOS project</a> · <a href="docs/architecture.md">architecture</a>).
+  A mobile client for DeepSeek Harness. Android is released; iOS is in development and device testing and must be signed with your own team, and <a href="tooling/ios/build-ipa.sh">build-ipa.sh</a> packages the unsigned IPA (<a href="app/ios/README.md">iOS project</a> · <a href="docs/release-ios.md">iOS IPA</a> · <a href="docs/architecture.md">architecture</a>).
 </p>
 
 <p align="center">

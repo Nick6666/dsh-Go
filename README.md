@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  DeepSeek Harness 的手机应用：Android 版已发布；iOS 版仍在开发和真机测试，需在 Mac 上自行签名编译（<a href="app/ios/README.md">iOS 工程</a> · <a href="docs/architecture.md">架构</a>）。
+  DeepSeek Harness 的手机应用：Android 版已发布；iOS 版仍在开发和真机测试，需在 Mac 上自行签名编译，仓库里的 <a href="tooling/ios/build-ipa.sh">build-ipa.sh</a> 负责打未签名安装包（<a href="app/ios/README.md">iOS 工程</a> · <a href="docs/release-ios.md">iOS IPA</a> · <a href="docs/architecture.md">架构</a>）。
 </p>
 
 <p align="center">

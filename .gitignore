@@ -39,6 +39,8 @@ site/build/
 
 # Release assets (tooling/release_assets.py)
 /dist/
+# Unsigned iOS IPA (tooling/ios/build-ipa.sh)
+/dist-ios/
 
 # Reproducible private OHOS rg regex build
 runtime/ohos/process/build/

@@ -1,0 +1,119 @@
+# Builds the unsigned iOS IPA on a macOS runner and, when the ref is an `ios-v*`
+# tag, attaches it to that release. Needs no secrets: nothing is signed and no
+# Apple account is involved, see docs/release-ios.md. The engine job is the long
+# part: it prepares the runtime, compiles the native addons and builds the iSH
+# guest, which the app embeds when the user installs Linux.
+name: iOS IPA
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['ios-v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ios-ipa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ipa:
+    runs-on: macos-26
+    timeout-minutes: 150
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      FLUTTER_VERSION: 3.47.7
+      FLUTTER_SHA256: dd9da574c3168460550117eb0e8dd0313ae934fabf64a82a6d557fff5fd1422e
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Show the toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          python3 --version
+
+      - name: Install Flutter
+        run: |
+          archive="flutter_macos_arm64_${FLUTTER_VERSION}-stable.zip"
+          curl -fsSL -o "$RUNNER_TEMP/$archive" \
+            "https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/$archive"
+          echo "$FLUTTER_SHA256  $RUNNER_TEMP/$archive" | shasum -a 256 -c -
+          unzip -q "$RUNNER_TEMP/$archive" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+
+      - name: Install the Rust and iSH build tools
+        run: |
+          if ! command -v rustup >/dev/null; then
+            curl -fsSL https://sh.rustup.rs -o "$RUNNER_TEMP/rustup-init.sh"
+            sh "$RUNNER_TEMP/rustup-init.sh" -y --profile minimal
+          fi
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          # Homebrew ships ld.lld in its own formula now, not with llvm.
+          brew install llvm lld
+          python3 -m venv "$RUNNER_TEMP/ish-tools"
+          "$RUNNER_TEMP/ish-tools/bin/pip" install meson==1.7.2 ninja==1.11.1.4
+          echo "$RUNNER_TEMP/ish-tools/bin" >> "$GITHUB_PATH"
+          echo "$(brew --prefix llvm)/bin" >> "$GITHUB_PATH"
+          echo "$(brew --prefix lld)/bin" >> "$GITHUB_PATH"
+
+      - name: Resolve dependencies
+        run: |
+          flutter --version
+          python3 app/tool/l10n_merge.py --no-gen
+          cd app
+          flutter pub get --enforce-lockfile
+          flutter gen-l10n
+
+      - name: Prepare the engine
+        run: |
+          log="$(mktemp)"
+          if ! bash tooling/ios/prepare-engine.sh 2>&1 | tee "$log"; then
+            tail -n 8 "$log" | cut -c1-600 | sed -e 's/%/%25/g' -e 's/^/::error title=prepare-engine::/'
+            exit 1
+          fi
+
+      - name: Build the IPA
+        run: |
+          log="$(mktemp)"
+          if ! bash tooling/ios/build-ipa.sh --output dist-ios 2>&1 | tee "$log"; then
+            tail -n 12 "$log" | cut -c1-600 | sed -e 's/%/%25/g' -e 's/^/::error title=build-ipa::/'
+            exit 1
+          fi
+          ls -la dist-ios
+          cat dist-ios/SHA256SUMS
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dsh-go-ios-ipa
+          path: |
+            dist-ios/*.ipa
+            dist-ios/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Attach the IPA to the tag's release
+        if: startsWith(github.ref, 'refs/tags/ios-v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          notes="$RUNNER_TEMP/notes.md"
+          version="$(sed -n 's/^version:[[:space:]]*\([^+[:space:]]*\).*/\1/p' app/pubspec.yaml)"
+          cat > "$notes" <<EOF
+          未签名 IPA，安装前须用你自己的 Apple ID 或证书重签（Xcode / AltStore / Sideloadly）。
+
+          - 版本名：$version
+          - Bundle ID：\`io.github.ccch1mneyyy.dshgo\`（重签时可不改，改了要连 App Group 与分享扩展一起改）
+          - 校验：\`shasum -a 256 -c SHA256SUMS\`
+          - 说明：\`docs/release-ios.md\`
+
+          侧载签名 7 天过期、最多 3 台设备，没有推送和 App 内更新；本机引擎、手机操控等能力以真机复验为准。
+          EOF
+          gh release create "$GITHUB_REF_NAME" \
+            dist-ios/*.ipa dist-ios/SHA256SUMS \
+            --title "DSH Go $version (iOS, unsigned)" \
+            --notes-file "$notes" \
+            --prerelease
