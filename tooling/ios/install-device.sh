@@ -10,6 +10,7 @@
 #   --team TEAMID      Development team. Xcode must be signed in to that Apple ID
 #                      (Xcode → Settings → Accounts) so it can create the profile.
 #   --device UDID      Default: the only connected physical device.
+#   --bundle-id ID     What to launch after installing; default the project's app id.
 #   --build-name X.Y.Z / -n N   version name and CFBundleVersion, as in build-ipa.sh.
 #   --list             Print connected devices and exit.
 #   --dry-run          Print the commands, build nothing.
@@ -34,6 +35,8 @@ while (($#)); do
     --team=*) team=${1#*=}; shift ;;
     --device) device=${2:?--device needs a UDID}; shift 2 ;;
     --device=*) device=${1#*=}; shift ;;
+    --bundle-id) BUNDLE=${2:?--bundle-id needs an id}; shift 2 ;;
+    --bundle-id=*) BUNDLE=${1#*=}; shift ;;
     --build-name) name=${2:?--build-name needs a version}; shift 2 ;;
     --build-name=*) name=${1#*=}; shift ;;
     -n | --build-number) code=${2:?--build-number needs a number}; shift 2 ;;
@@ -104,15 +107,18 @@ build=(
   xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release
   -destination 'generic/platform=iOS' -allowProvisioningUpdates -quiet
   "DEVELOPMENT_TEAM=$team"
-  "PRODUCT_BUNDLE_IDENTIFIER=$BUNDLE"
   build
+)
+settings=(
+  xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release
+  "DEVELOPMENT_TEAM=$team" -showBuildSettings
 )
 if [[ $dry == 1 ]]; then
   printf 'cd %q && flutter build ios --release --config-only --build-name %q --build-number %q\n' \
     "$APP" "$name" "$code"
   printf 'cd %q && %q' "$APP" "${build[0]}"
   printf ' %q' "${build[@]:1}"
-  printf '\nxcrun devicectl device install app --device %q %q\n' "$device" "$APP/build/ios/iphoneos/Runner.app"
+  printf '\nxcrun devicectl device install app --device %q "<TARGET_BUILD_DIR>/Runner.app"\n' "$device"
   exit 0
 fi
 
@@ -121,10 +127,15 @@ flutter build ios --release --config-only --build-name "$name" --build-number "$
 "${build[@]}" 2>&1 | tee /tmp/dsh-ios-install-build.log | grep -E "error:|warning: .*sign" || true
 [[ ${PIPESTATUS[0]} -eq 0 ]] || die "the signed build failed; see the errors above"
 
-BUILT="$APP/build/ios/iphoneos/Runner.app"
-[[ -d $BUILT ]] || die "no app at $BUILT"
-identity=$(codesign -dv "$BUILT" 2>&1 | sed -n 's/^Authority=//p' | head -1)
-[[ -n $identity ]] || die "the built app is not signed"
+# Xcode writes the signed product into its own build dir, which is not the
+# unsigned copy `flutter build ios --no-codesign` leaves in build/ios.
+product=$(cd "$APP" && "${settings[@]}" 2>/dev/null | awk -F' = ' '/^ *TARGET_BUILD_DIR = /{print $2; exit}')
+[[ -n $product ]] || die "cannot read TARGET_BUILD_DIR"
+BUILT="$product/Runner.app"
+[[ -d $BUILT ]] || die "no signed app at $BUILT"
+# Authority lines need two -v flags; one prints only the executable and identifier.
+identity=$(codesign -dvv "$BUILT" 2>&1 | sed -n 's/^Authority=//p' | head -1)
+[[ -n $identity ]] || die "the built app is not signed; check that the team can create a profile"
 printf 'install-device: signed by %s\n' "$identity" >&2
 
 xcrun devicectl device install app --device "$device" "$BUILT"

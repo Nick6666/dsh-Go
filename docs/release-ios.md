@@ -65,3 +65,34 @@ target 的 `PRODUCT_BUNDLE_IDENTIFIER`、两份 `.entitlements` 里的 App Group
 `.github/workflows/ios-ipa.yml`：`workflow_dispatch` 手工跑，推送 `ios-v*` tag 时另外把 IPA 挂到
 同名 Release。构建在 `macos-26` 上装 Flutter 3.47.7 与 iSH 工具链，跑 `prepare-engine.sh` 和
 `build-ipa.sh`，产物作为 workflow artifact 保留；不需要任何 secret。
+
+## 个人团队（免费 Apple ID）装机
+
+免费 Apple ID 能装，但有两处必须改，否则 `xcodebuild` 会报
+`Failed Registering Bundle Identifier` 或
+`doesn't match the entitlements file's value for com.apple.security.application-groups`：
+
+1. **换一个你自己的 bundle id**。`io.github.ccch1mneyyy.dshgo` 已经被上游团队注册在
+   Apple 开发者后台，别人的团队拿不到。改的时候连 App Group、扩展 id、URL scheme 一起改：
+
+   ```sh
+   git grep -l io.github.ccch1mneyyy.dshgo app/ios -- '*.swift' '*.plist' '*.entitlements' '*.pbxproj' \
+     | xargs sed -i '' 's/io\.github\.ccch1mneyyy\.dshgo/com.yilinli.dshgo/g'
+   ```
+
+2. **去掉 App Group**。免费团队不提供这个能力，描述文件里没有它就不会签过：
+   `Runner/Runner.entitlements` 删掉 `com.apple.security.application-groups`，
+   `ShareExtension/ShareExtension.entitlements` 留空字典。
+
+然后：
+
+```sh
+tooling/ios/install-device.sh --team <团队 id> --bundle-id com.yilinli.dshgo
+```
+
+脚本会 `--config-only` 准备产物、带 `DEVELOPMENT_TEAM` 编译（Xcode 自己生成描述文件）、
+校验签名后用 `devicectl` 装上并拉起。装完 `git checkout -- app/ios` 还原工程。
+
+去掉 App Group 的代价：分享扩展收不到文件（入口还在，交给主 App 那一步会失败）、
+小组件与手机操控 runner 的共享容器不可用；主 App 的对话、引擎、手机操控主体不受影响。
+描述文件 7 天过期，到期用同一条命令重装。
