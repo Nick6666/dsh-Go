@@ -1244,22 +1244,30 @@ final class EngineChannel: NSObject, FlutterStreamHandler {
     if !value.isEmpty, !secrets.contains(value) { secrets.append(value) }
   }
 
+  /// Compiled once: `replacingOccurrences(options: .regularExpression)`
+  /// compiles its pattern on every call, and the engine writes one of these per
+  /// stdout line, so the old form paid three compilations per line.
+  private static let logSecretPatterns: [NSRegularExpression] = [
+    #"([?&](?:token|key|api_key)=)[^\s&#]+"#,
+    #"((?i:authorization)\s*[:=]\s*(?:(?i:bearer)\s+)?)[^\s,;]+"#,
+    #"((?i:api[_-]?key|access[_-]?token|refresh[_-]?token)\s*[:=]\s*)[^\s,;]+"#,
+  ].compactMap { try? NSRegularExpression(pattern: $0) }
+
   @discardableResult
   private func appendLog(_ line: String, stream: String, emit shouldEmit: Bool = true) -> [String: Any] {
     var safe = line
-    for pattern in [
-      #"([?&](?:token|key|api_key)=)[^\s&#]+"#,
-      #"((?i:authorization)\s*[:=]\s*(?:(?i:bearer)\s+)?)[^\s,;]+"#,
-      #"((?i:api[_-]?key|access[_-]?token|refresh[_-]?token)\s*[:=]\s*)[^\s,;]+"#,
-    ] {
-      safe = safe.replacingOccurrences(of: pattern, with: "$1[REDACTED]", options: .regularExpression)
+    for pattern in Self.logSecretPatterns {
+      let range = NSRange(safe.startIndex..<safe.endIndex, in: safe)
+      safe = pattern.stringByReplacingMatches(in: safe, range: range, withTemplate: "$1[REDACTED]")
     }
     for secret in secrets { safe = safe.replacingOccurrences(of: secret, with: "[REDACTED]") }
     if safe.count > 8192 { safe = String(safe.prefix(8192)) + " [日志行已截断]" }
     logSequence += 1
     let entry: [String: Any] = ["seq": logSequence, "line": safe, "stream": stream]
     logs.append(entry)
-    if logs.count > 2000 { logs.removeFirst(logs.count - 2000) }
+    // Drop in batches: `removeFirst(count - 2000)` on every line once full is
+    // O(2000) per line, which shows up when the engine is chatty.
+    if logs.count > 2600 { logs.removeFirst(600) }
     if shouldEmit { emit(["type": "logs", "entries": [entry]]) }
     return entry
   }

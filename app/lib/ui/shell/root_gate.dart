@@ -246,11 +246,23 @@ class _RootGateState extends ConsumerState<RootGate> {
     });
   }
 
-  void _maybeAutoStart() {
+  Future<void> _maybeAutoStart() async {
     if (_autoStartDone) return;
     _autoStartDone = true;
     final settings = ref.read(settingsProvider);
     if (!settings.autoStartLocal) return;
+    // The stored host arrives a moment after launch. Deciding before it does
+    // would start the phone's engine on the way to a remote Host, and a paired
+    // Mac doesn't use it: that start only keeps Node and the runtime warm.
+    await ref.read(activeHostProvider.notifier).ready;
+    if (!mounted || !ref.read(activeHostProvider).isLocal) return;
+    _startLocalEngine();
+  }
+
+  /// Auto start for the 本机 Host, also when the person switches back to it
+  /// without relaunching.
+  void _startLocalEngine() {
+    if (!ref.read(settingsProvider).autoStartLocal) return;
     final status = ref.read(localRuntimeProvider).status;
     // After repeated crashes with automatic safe mode off, the failure card
     // waits for the user instead of starting again.
@@ -291,6 +303,11 @@ class _RootGateState extends ConsumerState<RootGate> {
     // The last host comes back while the splash shows, so a phone without
     // the runtime doesn't open on 本机 for a frame before its remote host.
     ref.read(activeHostProvider);
+    // A remote launch leaves the local engine off; choosing 本机 later still
+    // gets it going without a manual tap.
+    ref.listen(activeHostProvider.select((h) => h.isLocal), (wasLocal, isLocal) {
+      if (isLocal && wasLocal == false) _startLocalEngine();
+    });
 
     // "重置运行环境" sends the user back through setup; 「卸载运行环境」
     // (localDeclined) stays home.
@@ -369,7 +386,7 @@ class _RootGateState extends ConsumerState<RootGate> {
         );
       } else {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _maybeAutoStart();
+          if (mounted) unawaited(_maybeAutoStart());
         });
         // The native shell or the web page, by 界面 (ui_mode_state.dart); an
         // install from before usage statistics is told about them there, once.

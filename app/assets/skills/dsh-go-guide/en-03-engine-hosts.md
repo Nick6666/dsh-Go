@@ -45,7 +45,7 @@ You can add DSH to this phone anytime: tap **Install runtime** on the engine pag
 
 - **Start**, **Stop**, **Restart**: stopping asks first; both stopping and restarting interrupt active chats.
 - If the engine fails to start, the page shows the cause and ways to fix it, such as retrying, **Start in Safe mode** or viewing logs.
-- **Start when DSH Go opens**: on by default. As long as DSH is installed on this phone, opening the app starts it, even while you use a remote host. Turn it off if you don't need that.
+- **Start when DSH Go opens**: on by default. With a runtime installed, opening the app on 本机 or switching back to it from a remote host starts the engine; opening the app on a remote host leaves it off to save power. Turn it off if you don't need it at all.
 - **Automatic Safe mode**: on by default. After two failed starts in a row, starts without plugins.
 - **Start in Safe mode**: enter Safe mode by hand. Once fixed, tap **Return to normal mode**. Entering and leaving both restart the engine.
 - **Logs**: the engine's live output.

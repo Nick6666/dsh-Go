@@ -3,9 +3,11 @@ import 'package:dsh_app/runtime/runtime_state.dart';
 import 'package:dsh_app/state/settings_state.dart';
 import 'package:dsh_app/ui/onboarding/runtime_setup_page.dart';
 import 'package:dsh_app/ui/shell/root_gate.dart';
+import 'package:dsh_app/state/hosts_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../safe_mode/support.dart';
 import 'golden_harness.dart';
@@ -18,6 +20,9 @@ class _Logs extends LocalRuntimeLogsController {
 
 void main() {
   late _Logs logs;
+
+  // The launch decision reads the stored host before it starts anything.
+  setUp(() => SharedPreferences.setMockInitialValues({}));
   Future<RecordingRuntime> pump(
     WidgetTester tester, {
     bool autoStart = true,
@@ -56,6 +61,10 @@ void main() {
     );
     await tester.pump();
     ProviderScope.containerOf(tester.element(find.byType(RootGate))).read(localRuntimeLogsProvider);
+    // The launch start waits for the stored host before it decides, so give it
+    // the frames that settle that read.
+    await tester.pump();
+    await tester.pump();
     return runtime;
   }
 
@@ -65,6 +74,30 @@ void main() {
       logs.emit(['$i']);
       await tester.pump();
     }
+    expect(runtime.starts, ['start']);
+  });
+
+  testWidgets('a paired remote host does not start the phone engine', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      ActiveHostController.prefsKey: const HostRef.relay('mac').encode(),
+    });
+    final runtime = await pump(tester);
+    await tester.pump();
+    expect(runtime.starts, isEmpty);
+  });
+
+  testWidgets('choosing 本机 later starts it', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      ActiveHostController.prefsKey: const HostRef.relay('mac').encode(),
+    });
+    final runtime = await pump(tester);
+    await tester.pump();
+    expect(runtime.starts, isEmpty);
+
+    ProviderScope.containerOf(tester.element(find.byType(RootGate)))
+        .read(activeHostProvider.notifier)
+        .select(HostRef.local);
+    await tester.pump();
     expect(runtime.starts, ['start']);
   });
 
